@@ -33,7 +33,7 @@ network_settings["interfaces"].each do |iface|
     iface_ipv6_auto_configure = iface["ipv6_auto_configure"]
     iface_ipv6 = iface["ipv6_address"]
     iface_ipv6_prefix = iface["ipv6_prefix"]
-    iface_aliases = iface["aliases"]
+    #iface_aliases = iface["aliases"]
 
     puts iface_name
     puts iface_ipv4 
@@ -42,7 +42,7 @@ network_settings["interfaces"].each do |iface|
     puts iface_ipv6_auto_configure
     puts iface_ipv6
     puts iface_ipv6_prefix
-    puts iface_aliases
+    #puts iface_aliases
 
 
 #     iface_template = iface_template + "#Interface settings for #{iface_name}\n"
