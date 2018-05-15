@@ -4,8 +4,8 @@
 ### Configuration Parameters
 # json_path = "/home/system/settings/interfaces.json"
 # iface_file = "/etc/settings/networks.conf"
-json_path = "/Users/RvYMaX/Development/dnsvault-cli/settings/interfaces.json"
-iface_file = "/Users/RvYMaX/Development/dnsvault-cli/etc/settings/networks.conf"
+json_path = "/home/system/DNSVault-backends/settings/interfaces.json"
+iface_file = "/home/system/DNSVault-backends/etc/settings/networks.conf"
 
 ### Dependencies ###
 require "json"
