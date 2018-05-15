@@ -19,21 +19,31 @@ require "ipaddr"
 # load json db.
 json_file =  File.read(json_path)
 network_settings = JSON.parse(json_file)
-puts network_settings
 
-# # process each interface hash then write to file.
-# # write parameter to configs file.
-# iface_template = "#Network Settings \n"
-# network_settings["interfaces"].each do |iface|
 
-#     iface_name = iface["name"]
-#     iface_ipv4 = iface["ipv4_address"]
-#     iface_ipv4_subnetmask = iface["ipv4_subnetmask"]
-#     iface_ipv6_state = iface["ipv6_state"]
-#     iface_ipv6_auto_configure = iface["ipv6_auto_configure"]
-#     iface_ipv6 = iface["ipv6_address"]
-#     iface_ipv6_prefix = iface["ipv6_prefix"]
-#     iface_aliases = iface["aliases"]
+# process each interface hash then write to file.
+# write parameter to configs file.
+iface_template = "#Network Settings \n"
+network_settings["interfaces"].each do |iface|
+
+    iface_name = iface["name"]
+    iface_ipv4 = iface["ipv4_address"]
+    iface_ipv4_subnetmask = iface["ipv4_subnetmask"]
+    iface_ipv6_state = iface["ipv6_state"]
+    iface_ipv6_auto_configure = iface["ipv6_auto_configure"]
+    iface_ipv6 = iface["ipv6_address"]
+    iface_ipv6_prefix = iface["ipv6_prefix"]
+    iface_aliases = iface["aliases"]
+
+    puts iface_name
+    puts iface_ipv4 
+    puts iface_ipv4_subnetmask
+    puts iface_ipv6_state
+    puts iface_ipv6_auto_configure
+    puts iface_ipv6
+    puts iface_ipv6_prefix
+    puts iface_aliases
+
 
 #     iface_template = iface_template + "#Interface settings for #{iface_name}\n"
 #     unless iface_name.nil? or iface_ipv4.nil? or iface_ipv4_subnetmask.nil?
@@ -81,4 +91,4 @@ puts network_settings
 #         end
 #     end
 #     iface_template = iface_template +"\n"
-# end
+ end
