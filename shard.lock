@@ -1,0 +1,6 @@
+version: 1.0
+shards:
+  ipaddr:
+    github: arcage/crystal-ipaddr
+    commit: fa69c86ec870c3f22f01ede445eecb8a9a6bdc65
+

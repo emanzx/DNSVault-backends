@@ -1,0 +1,107 @@
+{
+  "timestamp": 1526358175,
+  "interfaces": [
+    {
+      "id": 1,
+      "node_id": 32,
+      "name": "net0",
+      "ipv4_address": "192.168.10.52",
+      "ipv4_subnetmask": "24",
+      "ipv6_address": "::129",
+      "ipv6_state": false,
+      "ipv6_type": "native",
+      "ipv6_auto_configure": false,
+      "enable_ha": false,
+      "status": 0
+    },
+    {
+      "id": 2,
+      "node_id": 32,
+      "name": "net1",
+      "ipv4_address": "192.168.0.100",
+      "ipv4_subnetmask": "3",
+      "ipv6_state": false,
+      "ipv6_type": "native",
+      "ipv6_auto_configure": false,
+      "enable_ha": false,
+      "status": 0,
+      "aliases": {
+        "ipv4": [
+          {
+            "address": "1.2.3.4",
+            "subnetmask": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "node_id": 32,
+      "name": "net2",
+      "ipv4_address": "1.1.1.1",
+      "ipv4_subnetmask": "2",
+      "ipv6_state": true,
+      "ipv6_type": "native",
+      "ipv6_auto_configure": false,
+      "enable_ha": false,
+      "status": 0,
+      "roles": [
+        {
+          "name": "role name",
+          "ipv4_address": "1.2.33.50",
+          "ipv4_subnetmask": "128.0.0.0/1",
+          "ipv6_address": "",
+          "password": "dnsvault",
+          "vhid": "",
+          "adskew": "",
+          "kind": "master",
+          "state": "active"
+        },
+        {
+          "name": "faffa",
+          "ipv4_address": "1.1.12.12",
+          "ipv4_subnetmask": "128.0.0.0/1",
+          "ipv6_address": "",
+          "password": "dnsvault",
+          "vhid": "",
+          "adskew": "",
+          "kind": "master",
+          "state": "active"
+        },
+        {
+          "name": "ha",
+          "ipv4_address": "7.7.7.7",
+          "ipv4_subnetmask": "128.0.0.0/1",
+          "ipv6_address": "",
+          "password": "dnsvault",
+          "vhid": "",
+          "adskew": "",
+          "kind": "master",
+          "state": "active"
+        }
+      ],
+      "aliases": {
+        "ipv4": [
+          {
+            "address": "1.2.3.2",
+            "subnetmask": "224.0.0.0/3"
+          },
+          {
+            "address": "9.9.9.9",
+            "subnetmask": "192.0.0.0/2"
+          },
+          {
+            "address": "1.1.1.4",
+            "subnetmask": "192.0.0.0/2"
+          }
+        ],
+        "ipv6": [
+          {
+            "address": "::5",
+            "prefix": "65"
+          }
+        ]
+      }
+    }
+  ]
+}

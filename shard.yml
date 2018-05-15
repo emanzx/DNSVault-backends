@@ -1,0 +1,23 @@
+name: DNSVault-backends
+version: 0.1.0
+
+authors:
+  - emanzx <emanzx@gmail.com>
+
+description: |
+ Backends worker to process json file from platform to apply to nodes
+
+dependencies:
+ ipaddr:
+   github: arcage/crystal-ipaddr
+
+# dependencies:
+#   pg:
+#     github: will/crystal-pg
+#     version: "~> 0.5"
+
+# development_dependencies:
+#   webmock:
+#     github: manastech/webmock.cr
+
+license: MIT
