@@ -23,72 +23,211 @@ network_settings = JSON.parse(json_file)
 
 # process each interface hash then write to file.
 # write parameter to configs file.
-iface_template = "#Network Settings \n"
+iface_template = ""
+clone_interfaces = [] of String
+vlan_interface = {} of String => Array(Int32)
+lagg_index = 0
 network_settings["interfaces"].each do |iface|
 
-    iface_name = iface.has_key?("name") ? iface["name"] : nil
-    iface_ipv4 = iface.has_key?("ipv4_address") ? iface["ipv4_address"] : nil
-    iface_ipv4_subnetmask = iface.has_key?("ipv4_subnetmask") ? iface["ipv4_subnetmask"] : nil
-    iface_ipv6_state = iface.has_key?("name") ? iface["ipv6_state"] : nil
-    iface_ipv6_auto_configure = iface.has_key?("name") ? iface["ipv6_auto_configure"] : nil
-    iface_ipv6 = iface.has_key?("name") ? iface["ipv6_address"] : nil
-    iface_ipv6_prefix = iface.has_key?("name") ?  iface["ipv6_prefix"] : nil
-    iface_aliases = iface.has_key?("name") ?  iface["aliases"] : nil
 
-    puts iface_name
-    puts iface_ipv4 
-    puts iface_ipv4_subnetmask
-    puts iface_ipv6_state
-    puts iface_ipv6_auto_configure
-    puts iface_ipv6
-    puts iface_ipv6_prefix
-    puts iface_aliases
+    iface_state = iface["state"]?
+    iface_name = iface["name"]?
+    iface_ipv4 = iface["ipv4_address"]?
+    iface_ipv4_netmask = iface["ipv4_netmask"]?
+    iface_ipv6_state = iface["ipv6_state"]?
+    iface_ipv6_type = iface["ipv6_type"]?
+    iface_ipv6 = iface["ipv6_address"]?
+    iface_ipv6_prefix = iface["ipv6_prefix"]?
+    iface_aliases = iface["aliases"]?
+    iface_high_availability = iface["high_availability"]?
+    iface_ha_roles = iface["ha_roles"]?
+    iface_type = iface["type"]?
+    iface_bond_mode = iface["mode"]?
+    iface_parents = iface["parent"]?.to_s
+    iface_vlan_id = iface["vlan_id"]?.to_s.to_i rescue 0
+    
+    next if iface_state.to_s == "false"
+    alias_index = 0
+    iface_template = iface_template + "#Interface settings for #{iface_name}\n"
+    if  iface_name && iface_ipv4 && iface_ipv4_netmask
+        if iface_type == "lagg"
+            #rename iface name to laggN
+            iface_name = "lagg#{lagg_index}"
+            #increase lagg_index
+            lagg_index+=1
+            #add interface to cloned interface
+            clone_interfaces << iface_name.to_s
+            #activate parrent interface
+            iface_template = iface_template + "#Parent interfaces \n"
+            laggports = ""
+            iface_parents.split(" ").each do |i|
+                iface_template = iface_template + "ifconfig_#{i}=\"up\"\n"
+                #agregating network interface
+                laggports = laggports + " laggport #{i}"
+            end
+            #process v4 address
+            #split netmask
+            iface_ipv4_split_netmask = iface_ipv4_netmask.to_s.split("/")[0]
+            iface_template = iface_template + "#IPv4\n"
+            iface_template = iface_template + "ifconfig_#{iface_name}=\"inet #{iface_ipv4} netmask #{iface_ipv4_split_netmask} laggproto #{iface_bond_mode} #{laggports.strip}\"\n"
+        elsif iface_type == "vlan"
+            #add curent vlan to vlan tag
+            if vlan_interface.empty?
+                vlan_interface["#{iface_parents}"] = [iface_vlan_id]
+            elsif vlan_interface.has_key?("#{iface_parents}")
+                vlan_interface["#{iface_parents}"] << iface_vlan_id
+            elsif !vlan_interface.has_key?("#{iface_parents}")
+                vlan_interface["#{iface_parents}"] = [iface_vlan_id]
+            else
+                puts "Error configuring Vlan :#{iface_name}"
+                next
+            end
+            #process v4 address
+            #split netmask
+            iface_ipv4_split_netmask = iface_ipv4_netmask.to_s.split("/")[0]
+            iface_template = iface_template + "#IPv4\n"
+            iface_template = iface_template + "ifconfig_#{iface_name}=\"inet #{iface_ipv4} netmask #{iface_ipv4_split_netmask}\"\n"
+        else
+            #process v4 address
+            #split netmask
+            iface_ipv4_split_netmask = iface_ipv4_netmask.to_s.split("/")[0]
+            iface_template = iface_template + "#IPv4\n"
+            iface_template = iface_template + "ifconfig_#{iface_name}=\"inet #{iface_ipv4} netmask #{iface_ipv4_split_netmask}\"\n"
+        end
+        #process v4 alias and HA
+        if iface_aliases && iface_aliases["ipv4"]?
+            iface_template = iface_template + "#IPv4 alias\n"
+            iface_aliases["ipv4"].each do |a|
+                alias_v4_address = a["address"]
+                alias_v4_netmask = a["netmask"].to_s.split("/")[0]
 
+                if alias_v4_address && alias_v4_netmask
+                    iface_template = iface_template + "ifconfig_#{iface_name}_alias#{alias_index}=\"inet #{alias_v4_address} netmask #{alias_v4_netmask}\"\n"
+                    alias_index+=1
+                end
+            end
+        end
 
-#     iface_template = iface_template + "#Interface settings for #{iface_name}\n"
-#     unless iface_name.nil? or iface_ipv4.nil? or iface_ipv4_subnetmask.nil?
-#         #process v4 address
-#         iface_template = iface_template + "#IPv4\n"
-#         iface_template = iface_template + "ifconfig_#{iface_name}=\"inet #{iface_ipv4} netmask #{iface_ipv4_subnetmask}\"\n"
+        #process v4 HA
+        if iface_high_availability.to_s == "true"
+            if iface_ha_roles && iface_ha_roles["ipv4"]?
+                iface_template = iface_template + "#IPv4 High Availability\n"
+                iface_ha_roles["ipv4"].each do |ha|
+                    ha_v4_address = ha["address"]
+                    ha_v4_netmask = ha["netmask"]
+                    ha_v4_password = ha["password"]
+                    ha_v4_vhid = ha["vhid"]
+                    ha_v4_adskew = ha["adskew"]
+                    ha_v4_type = ha["type"]
+                    
+                    if ha_v4_type == "master"
+                        if ha_v4_address && ha_v4_netmask && ha_v4_password && ha_v4_vhid
+                            iface_template = iface_template + "ifconfig_#{iface_name}_alias#{alias_index}=\"inet #{ha_v4_address} netmask #{ha_v4_netmask} vhid #{ha_v4_vhid} pass #{ha_v4_password}\"\n"
+                            alias_index+=1
+                        end
+                    elsif ha_v4_type == "slave"
+                        if ha_v4_address && ha_v4_netmask && ha_v4_password && ha_v4_vhid && ha_v4_adskew
+                            iface_template = iface_template + "ifconfig_#{iface_name}_alias#{alias_index}=\"inet #{ha_v4_address} netmask #{ha_v4_netmask} vhid #{ha_v4_vhid} advskew #{ha_v4_adskew} pass #{ha_v4_password}\"\n"
+                            alias_index+=1
+                        end
+                    end
+                end
+            end
+        end
+    end
 
-#         #process v4 alias
-#         unless iface_aliases["ipv4"].nil?
-#             alias_index = 0
-#             iface_template = iface_template + "#IPv4 alias\n"
-#             iface_aliases["ipv4"].each do |a|
-#                 alias_v4_address = a["address"]
-#                 alias_v4_subnet = a["subnetmask"]
+    if iface_ipv6_state.to_s == "true"
+        if iface_ipv6_type == "auto"
+            iface_template = iface_template + "#IPv6\n"
+            iface_template = iface_template + "ifconfig_#{iface_name}_ipv6=\"inet6 accept_rtadv\"\n"
 
-#                 iface_template = iface_template + "ifconfig_#{iface_name}_alias#{alias_index}=\"inet #{alias_v4_address} netmask #{alias_v4_subnet}\"\n"
-#                 alias_index+=1
-#             end
-#         end
-#     end
+        elsif iface_ipv6_type == "link_local"
+            iface_template = iface_template + "#IPv6\n"
+            iface_template = iface_template + "ifconfig_#{iface_name}_ipv6=\"inet6 auto_linklocal\"\n"
 
-#     if iface_ipv6_state
-#         if iface_ipv6_auto_configure
-#             iface_template = iface_template + "#IPv6\n"
-#             iface_template = iface_template + "ifconfig_#{iface_name}=\"inet6 accept_rtadv\"\n"
-#         else
-#             unless iface_name.nil? or iface_ipv6.nil? or iface_ipv6_prefix.nil?
-#                 #process v6 address
-#                 iface_template = iface_template + "#IPv6\n"
-#                 iface_template = iface_template + "ifconfig_#{iface_name}=\"inet6 #{iface_ipv6} prefixlen #{iface_ipv6_prefix}\"\n"
+        elsif iface_ipv6_type == "dhcpv6"
+            iface_template = iface_template + "#IPv6\n"
+            iface_template = iface_template + "ifconfig_#{iface_name}_ipv6=\"DHCP\"\n"
 
-#                 #process v6 alias
-#                 unless iface_aliases["ipv6"].nil?
-#                     alias_index = 0
-#                     iface_template = iface_template + "#IPv6 alias\n"
-#                     iface_aliases["ipv6"].each do |a|
-#                         alias_v6_address = a["address"]
-#                         alias_v6_prefix = a["prefix"]
+        elsif iface_ipv6_type == "static"
+            if iface_name && iface_ipv6 && iface_ipv6_prefix
+                #process v6 address
+                iface_template = iface_template + "#IPv6\n"
+                iface_template = iface_template + "ifconfig_#{iface_name}_ipv6=\"inet6 #{iface_ipv6} prefixlen #{iface_ipv6_prefix}\"\n"
 
-#                         iface_template = iface_template + "ifconfig_#{iface_name}_alias#{alias_index}=\"inet6 #{alias_v6_address} prefixlen #{alias_v6_prefix}\"\n"
-#                         alias_index+=1
-#                     end
-#                 end
-#             end
-#         end
-#     end
-#     iface_template = iface_template +"\n"
- end
+                #process v6 alias
+                if iface_aliases && iface_aliases["ipv6"]?
+                    iface_template = iface_template + "#IPv6 alias\n"
+                    iface_aliases["ipv6"].each do |a|
+                        alias_v6_address = a["address"]
+                        alias_v6_prefix = a["prefix"]
+                        if alias_v6_address && alias_v6_prefix
+                            iface_template = iface_template + "ifconfig_#{iface_name}_alias#{alias_index}=\"inet6 #{alias_v6_address} prefixlen #{alias_v6_prefix}\"\n"
+                            alias_index+=1
+                        end
+                    end
+                end
+
+                #process v6 HA
+                if iface_high_availability.to_s == "true"
+                    if iface_ha_roles && iface_ha_roles["ipv6"]?
+                        iface_template = iface_template + "#IPv6 High Availability\n"
+                        iface_ha_roles["ipv6"].each do |ha|
+                            ha_v6_address = ha["address"]
+                            ha_v6_prefix = ha["prefix"]
+                            ha_v6_password = ha["password"]
+                            ha_v6_vhid = ha["vhid"]
+                            ha_v6_adskew = ha["adskew"]
+                            ha_v6_type = ha["type"]
+                            
+                            if ha_v6_type == "master"
+                                if ha_v6_address && ha_v6_prefix && ha_v6_password && ha_v6_vhid
+                                    iface_template = iface_template + "ifconfig_#{iface_name}_alias#{alias_index}=\"inet6 #{ha_v6_address} prefixlen #{ha_v6_prefix} vhid #{ha_v6_vhid} pass #{ha_v6_password}\"\n"
+                                    alias_index+=1
+                                end
+                            elsif ha_v6_type == "slave"
+                                if ha_v6_address && ha_v6_prefix && ha_v6_password && ha_v6_vhid && ha_v6_adskew
+                                    iface_template = iface_template + "ifconfig_#{iface_name}_alias#{alias_index}=\"inet6 #{ha_v6_address} prefixlen #{ha_v6_prefix} vhid #{ha_v6_vhid} advskew #{ha_v6_adskew} pass #{ha_v6_password}\"\n"
+                                    alias_index+=1
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+     iface_template = iface_template + "\n"
+end
+# generating clone interface parameter
+if ! clone_interfaces.empty?
+    clone_iface = "#Cloned Interfaces\ncloned_interfaces=\"#{clone_interfaces.join(" ")}\"\n\n"
+else
+    clone_iface = ""
+end
+#generating vlan interface tag for each parent interface
+if ! vlan_interface.empty?
+    vlan_tags = "#Vlans interfaces\n"
+    vlan_interface.each do |vlan_if|
+        parent_if = vlan_if[0]
+        vlan_ids = vlan_if[1].join(" ")
+        vlan_tags = vlan_tags + "vlans_#{parent_if}=\"#{vlan_ids}\"\n"
+    end
+    vlan_tags = vlan_tags + "\n"
+else
+    vlan_tags = ""
+end
+
+#aggregating settings.
+iface_template = "#Network Settings \n\n" + clone_iface + vlan_tags + iface_template
+puts iface_template
+
+#writing setting to file.
+File.write(iface_file, iface_template)
+
+#restart daemon
+Process.run("/usr/sbin/service", args: {"netif restart"}, shell: true)
+Process.run("/usr/sbin/service", args: {"routing restart"}, shell: true)
+Process.run("/usr/sbin/service", args: {"tincd stop"}, shell: true)
+Process.run("/usr/sbin/service", args: {"tincd start"}, shell: true)
+Process.run("/usr/sbin/service", args: {"avahi-daemon restart"}, shell: true)
