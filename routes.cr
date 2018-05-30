@@ -46,7 +46,7 @@ route_static_v4.each do |route|
     gateway = route["gateway"]?.to_s
     interface = route["interface"]?.to_s
 
-    if netmask == "32"
+    if prefix == "32"
         if interface
             routes_v4_template = routes_v4_template + "route_#{route_name}=\"-host #{address} -iface #{interface}\"\n"
         else
