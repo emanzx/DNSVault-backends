@@ -17,7 +17,7 @@ require "json"
 
 # load json db.
 json_file =  File.read(json_path)
-route_settings = JSON.parse(json_file)
+routes_settings = JSON.parse(json_file)
 
 
 # process each route hash then write to file.
