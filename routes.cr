@@ -38,7 +38,7 @@ routes_template = "#{routes_template}" + "IPv6 Default Route\nipv6_defaultrouter
 routes_template = routes_template + "\n"
 
 #process v4 routes
-route_static_v4.each do |route|
+route_static_v4?.each do |route|
 
     route_name = route["route_name"]?.to_s
     address = route["address"]?.to_s
@@ -62,7 +62,7 @@ route_static_v4.each do |route|
     route_v4_names = route_v4_names + "#{route_name} "
 end
 #process v6 routes
-route_static_v6.each do |route|
+route_static_v6?.each do |route|
 
     route_name = route["route_name"]?.to_s
     address = route["address"]?.to_s
