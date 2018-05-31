@@ -2,10 +2,10 @@
 ## json file as database backend.
 
 ### Configuration Parameters
-# json_path = "/home/system/settings/interfaces.json"
-# iface_file = "/etc/settings/networks.conf"
-json_path = "/home/system/DNSVault-backends/settings/interfaces.json"
-iface_file = "/home/system/DNSVault-backends/etc/settings/networks.conf"
+json_path = "/home/system/settings/interfaces.json"
+iface_file = "/etc/settings/networks.conf"
+#json_path = "/home/system/DNSVault-backends/settings/interfaces.json"
+#iface_file = "/home/system/DNSVault-backends/etc/settings/networks.conf"
 
 ### Dependencies ###
 require "json"
@@ -46,7 +46,7 @@ network_settings["interfaces"].each do |iface|
     iface_parents = iface["parent"]?.to_s
     iface_vlan_id = iface["vlan_id"]?.to_s.to_i rescue 0
     
-    next if iface_state.to_s == "false"
+    next unless iface_state.as_bool?
     alias_index = 0
     iface_template = iface_template + "#Interface settings for #{iface_name}\n"
     if  iface_name && iface_ipv4 && iface_ipv4_netmask
@@ -109,7 +109,7 @@ network_settings["interfaces"].each do |iface|
         end
 
         #process v4 HA
-        if iface_high_availability.to_s == "true"
+        if iface_high_availability.as_bool?
             if iface_ha_roles && iface_ha_roles["ipv4"]?
                 iface_template = iface_template + "#IPv4 High Availability\n"
                 iface_ha_roles["ipv4"].each do |ha|
@@ -136,7 +136,7 @@ network_settings["interfaces"].each do |iface|
         end
     end
 
-    if iface_ipv6_state.to_s == "true"
+    if iface_ipv6_state.as_bool?
         if iface_ipv6_type == "auto"
             iface_template = iface_template + "#IPv6\n"
             iface_template = iface_template + "ifconfig_#{iface_name}_ipv6=\"inet6 accept_rtadv\"\n"
@@ -169,7 +169,7 @@ network_settings["interfaces"].each do |iface|
                 end
 
                 #process v6 HA
-                if iface_high_availability.to_s == "true"
+                if iface_high_availability.as_bool?
                     if iface_ha_roles && iface_ha_roles["ipv6"]?
                         iface_template = iface_template + "#IPv6 High Availability\n"
                         iface_ha_roles["ipv6"].each do |ha|
@@ -224,10 +224,3 @@ puts iface_template
 
 #writing setting to file.
 File.write(iface_file, iface_template)
-
-#restart daemon
-Process.run("/usr/sbin/service", args: {"netif restart"}, shell: true)
-Process.run("/usr/sbin/service", args: {"routing restart"}, shell: true)
-Process.run("/usr/sbin/service", args: {"tincd stop"}, shell: true)
-Process.run("/usr/sbin/service", args: {"tincd start"}, shell: true)
-Process.run("/usr/sbin/service", args: {"avahi-daemon restart"}, shell: true)
