@@ -3,9 +3,9 @@
 
 ### Configuration Parameters
 # json_path = "/home/system/settings/routes.json"
-# iface_file = "/etc/settings/routes.conf"
-json_path = "/home/system/DNSVault-backends/settings/interfaces.json"
-iface_file = "/home/system/DNSVault-backends/etc/settings/networks.conf"
+# route_file = "/etc/settings/routes.conf"
+json_path = "/home/system/DNSVault-backends/settings/routes.json"
+route_file = "/home/system/DNSVault-backends/etc/settings/routes.conf"
 
 ### Dependencies ###
 require "json"
@@ -27,69 +27,76 @@ routes_v4_template = ""
 routes_v6_template = ""
 route_v4_names = ""
 route_v6_names = ""
-route_v4_default = routes_settings["default_router_ipv4"]?
-route_v6_default = routes_settings["default_router_ipv6"]?
+route_v4_default = routes_settings["default_router_ipv4"]?.to_s
+route_v6_default = routes_settings["default_router_ipv6"]?.to_s
 route_static_v4 = routes_settings["static"]["ipv4"]?
 route_static_v6 = routes_settings["static"]["ipv6"]?
 
 #process default routes
-routes_template = "IPv4 Default Route\ndefaultrouter=\"#{route_v4_default}\"\n" if route_v4_default
-routes_template = "#{routes_template}" + "IPv6 Default Route\nipv6_defaultrouter=\"#{route_v6_default}\"\n" if route_v6_default
+routes_template = "#IPv4 Default Route\ndefaultrouter=\"#{route_v4_default}\"\n" unless route_v4_default.empty?
+routes_template = "#{routes_template}" + "#IPv6 Default Route\nipv6_defaultrouter=\"#{route_v6_default}\"\n" unless route_v6_default.empty?
 routes_template = routes_template + "\n"
 
 #process v4 routes
-route_static_v4?.each do |route|
+if route_static_v4
+    route_static_v4.each do |route|
 
-    route_name = route["route_name"]?.to_s
-    address = route["address"]?.to_s
-    prefix = route["netmask"]?.to_s.split("/")[1] if route["netmask"]?.to_s
-    gateway = route["gateway"]?.to_s
-    interface = route["interface"]?.to_s
+        route_name = route["route_name"]?.to_s
+        address = route["address"]?.to_s
+        prefix = route["netmask"]?.to_s.split("/")[1] if route["netmask"]?.to_s
+        gateway = route["gateway"]?.to_s
+        interface = route["interface"]?.to_s
 
-    if prefix == "32"
-        if interface
-            routes_v4_template = routes_v4_template + "route_#{route_name}=\"-host #{address} -iface #{interface}\"\n"
+        if prefix == "32"
+            unless interface.empty?
+                routes_v4_template = routes_v4_template + "route_#{route_name}=\"-host #{address} -iface #{interface}\"\n"
+            else
+                routes_v4_template = routes_v4_template + "route_#{route_name}=\"-host #{address} #{gateway}\"\n"
+            end
         else
-            routes_v4_template = routes_v4_template + "route_#{route_name}=\"-host #{address} #{gateway}\"\n"
+            unless interface.empty?
+                routes_v4_template = routes_v4_template + "route_#{route_name}=\"-net #{address}/#{prefix} -iface #{interface}\"\n"
+            else
+                routes_v4_template = routes_v4_template + "route_#{route_name}=\"-net #{address}/#{prefix} #{gateway}\"\n"
+            end
         end
-    else
-        if interface
-            routes_v4_template = routes_v4_template + "route_#{route_name}=\"-net #{address}/#{prefix} -iface #{interface}\"\n"
-        else
-            routes_v4_template = routes_v4_template + "route_#{route_name}=\"-net #{address}/#{prefix} #{gateway}\"\n"
-        end
+        route_v4_names = route_v4_names + "#{route_name} "
     end
-    route_v4_names = route_v4_names + "#{route_name} "
 end
+
 #process v6 routes
-route_static_v6?.each do |route|
+if route_static_v6
+    route_static_v6.each do |route|
 
-    route_name = route["route_name"]?.to_s
-    address = route["address"]?.to_s
-    prefix = route["netmask"]?.to_s.split("/")[1] if route["netmask"]?.to_s
-    gateway = route["gateway"]?.to_s
+        route_name = route["route_name"]?.to_s
+        address = route["address"]?.to_s
+        prefix = route["prefix"]?.to_s
+        gateway = route["gateway"]?.to_s
 
-    routes_v6_template = routes_v6_template + "ipv6_route_#{route_name}=\"#{address} -prefixlen #{prefix} #{gateway}\"\n"
-    route_v6_names = route_v6_names + "#{route_name} "
-end
-    
-# generating routing name parameter for IPv4
-if route_v4_names
-    ipv4_routes_names = "#IPv4 Static Routes\nstatic_routes=\"#{route_v4_names}.strip\"\n\n"
-else
-    ipv4_routes_names = ""
+        routes_v6_template = routes_v6_template + "ipv6_route_#{route_name}=\"#{address} -prefixlen #{prefix} #{gateway}\"\n"
+        route_v6_names = route_v6_names + "#{route_name} "
+    end
 end
 
-# generating routing name parameter for IPv6
-if route_v6_names
-    ipv6_routes_names = "#IPv6 Static Routes\nipv6_static_routes=\"#{route_v6_names}.strip\"\n\n"
+# generating routing parameter for IPv4
+unless route_v4_names.empty?
+    ipv4_routes_names = "#IPv4 Static Routes\nstatic_routes=\"#{route_v4_names.strip}\"\n"
+    routes_v4_template = ipv4_routes_names + routes_v4_template + "\n"
 else
-    ipv6_routes_names = ""
+    routes_v4_template = ""
+end
+
+# generating routing parameter for IPv6
+unless route_v6_names.empty?
+    ipv6_routes_names = "#IPv6 Static Routes\nipv6_static_routes=\"#{route_v6_names.strip}\"\n"
+    routes_v6_template = ipv6_routes_names + routes_v6_template
+else
+    routes_v6_template  = ""
 end
 
 
 #aggregating settings.
-routes_template = ipv4_routes_names + ipv6_routes_names
+routes_template = routes_template + routes_v4_template  + routes_v6_template
 puts routes_template
 
 #writing setting to file.
