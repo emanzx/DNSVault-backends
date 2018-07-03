@@ -11,7 +11,7 @@ require "yaml"
 
 ### Load external variable
 unless File.file?(config_file)
-    puts "Error!! Config file not found at #{config_path}"
+    puts "Error!! Config file not found at #{config_file}"
     exit 1
 else
     config_yaml = YAML.parse(File.read("#{config_file}"))
