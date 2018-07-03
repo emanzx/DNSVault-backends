@@ -2,23 +2,38 @@
 ## json file as database backend.
 
 ### Configuration Parameters
-json_path = "/home/system/settings/interfaces.json"
-iface_file = "/etc/settings/networks.conf"
-#json_path = "/home/system/DNSVault-backends/settings/interfaces.json"
-#iface_file = "/home/system/DNSVault-backends/etc/settings/networks.conf"
+#### Move the static configuration file to yaml config file. 
+config_file = "/home/system/dnsvault/configs/settings.yml"
 
 ### Dependencies ###
 require "json"
-require "ipaddr"
+require "yaml"
+
+### Load external variable
+unless File.file?(config_file)
+    puts "Error!! Config file not found at #{config_path}"
+    exit 1
+else
+    config_yaml = YAML.parse(File.read("#{config_file}"))
+end
+
 
 ### Functions ###
 
 
 ### Code Begin Here ###
 
+json_path = config_yaml["interfaces"]["json_file"].as_s
+iface_file = config_yaml["interfaces"]["iface_file"].as_s
+
 # load json db.
-json_file =  File.read(json_path)
-network_settings = JSON.parse(json_file)
+if json.file.file?
+    json_file =  File.read(json_path)
+    network_settings = JSON.parse(json_file)
+else
+    puts "Error #{json_path} not found!"
+    exit 1
+end
 
 
 # process each interface hash then write to file.
@@ -45,8 +60,8 @@ network_settings["interfaces"].each do |iface|
     iface_bond_mode = iface["mode"]?
     iface_parents = iface["parent"]?.to_s
     iface_vlan_id = iface["vlan_id"]?.to_s.to_i rescue 0
-    
-    next unless iface_state.as_bool?
+
+    next unless iface_state.try( &.as_bool? )
     alias_index = 0
     iface_template = iface_template + "#Interface settings for #{iface_name}\n"
     if  iface_name && iface_ipv4 && iface_ipv4_netmask
@@ -109,7 +124,7 @@ network_settings["interfaces"].each do |iface|
         end
 
         #process v4 HA
-        if iface_high_availability.as_bool?
+        if iface_high_availability.try( &.as_bool? )
             if iface_ha_roles && iface_ha_roles["ipv4"]?
                 iface_template = iface_template + "#IPv4 High Availability\n"
                 iface_ha_roles["ipv4"].each do |ha|
@@ -136,7 +151,7 @@ network_settings["interfaces"].each do |iface|
         end
     end
 
-    if iface_ipv6_state.as_bool?
+    if iface_ipv6_state.try( &.as_bool? )
         if iface_ipv6_type == "auto"
             iface_template = iface_template + "#IPv6\n"
             iface_template = iface_template + "ifconfig_#{iface_name}_ipv6=\"inet6 accept_rtadv\"\n"
@@ -169,7 +184,7 @@ network_settings["interfaces"].each do |iface|
                 end
 
                 #process v6 HA
-                if iface_high_availability.as_bool?
+                if iface_high_availability.try( &.as_bool? )
                     if iface_ha_roles && iface_ha_roles["ipv6"]?
                         iface_template = iface_template + "#IPv6 High Availability\n"
                         iface_ha_roles["ipv6"].each do |ha|
