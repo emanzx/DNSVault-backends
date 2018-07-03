@@ -27,7 +27,7 @@ json_path = config_yaml["interfaces"]["json_file"].as_s
 iface_file = config_yaml["interfaces"]["iface_file"].as_s
 
 # load json db.
-if json.file.file?
+if File.file?(json_path)
     json_file =  File.read(json_path)
     network_settings = JSON.parse(json_file)
 else
