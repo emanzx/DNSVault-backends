@@ -4,6 +4,7 @@
 ### Configuration Parameters
 #### Move the static configuration file to yaml config file. 
 config_file = "/home/system/dnsvault/configs/settings.yml"
+test_mode = false
 
 ### Dependencies ###
 require "json"
