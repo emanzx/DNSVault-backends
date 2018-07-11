@@ -8,6 +8,17 @@ config_file = "/home/system/dnsvault/configs/settings.yml"
 ### Dependencies ###
 require "json"
 require "yaml"
+equire "option_parser"
+
+
+# Excutable argument settings.
+# -t to run in verbose test mode.
+# https://crystal-lang.org/api/0.18.7/OptionParser.html
+OptionParser.parse! do |parser|
+    parser.banner = "Usage: #{PROGRAM_NAME} [arguments]"
+    parser.on("-t", "--test", "Run in test mode. Only output to stdout and will not write to file.") { test_mode = true }
+    parser.on("-h", "--help", "Show this help") { puts parser }
+  end
 
 ### Load external variable
 unless File.file?(config_file)
@@ -47,8 +58,9 @@ if resolver_list
         resolv_template = resolv_template + "#{resolv_key} #{resolv_value}\n"
     end
 end
-
-puts resolv_template
-
-#writing setting to file.
-File.write(resolv_file, resolv_template)
+if test_mode
+    puts resolv_template
+else
+    #writing setting to file.
+    File.write(resolv_file, resolv_template)
+end
