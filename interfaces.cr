@@ -4,10 +4,22 @@
 ### Configuration Parameters
 #### Move the static configuration file to yaml config file. 
 config_file = "/home/system/dnsvault/configs/settings.yml"
+test_mode = false
 
 ### Dependencies ###
 require "json"
 require "yaml"
+require "option_parser"
+
+
+# Excutable argument settings.
+# -t to run in verbose test mode.
+# https://crystal-lang.org/api/0.18.7/OptionParser.html
+OptionParser.parse! do |parser|
+    parser.banner = "Usage: #{PROGRAM_NAME} [arguments]"
+    parser.on("-t", "--test", "Run in test mode. Only output to stdout and will not write to file.") { test_mode = true }
+    parser.on("-h", "--help", "Show this help") { puts parser }
+  end
 
 ### Load external variable
 unless File.file?(config_file)
@@ -235,7 +247,9 @@ end
 
 #aggregating settings.
 iface_template = "#Network Settings \n\n" + clone_iface + vlan_tags + iface_template
-puts iface_template
-
-#writing setting to file.
-File.write(iface_file, iface_template)
+if test_mode
+    puts iface_template
+else
+    #writing setting to file.
+    File.write(iface_file, iface_template)
+end
