@@ -8,7 +8,7 @@ config_file = "/home/system/dnsvault/configs/settings.yml"
 ### Dependencies ###
 require "json"
 require "yaml"
-equire "option_parser"
+require "option_parser"
 
 
 # Excutable argument settings.
