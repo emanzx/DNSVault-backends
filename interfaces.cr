@@ -119,7 +119,7 @@ network_settings["interfaces"].each do |iface|
             #split netmask
             iface_ipv4_split_netmask = iface_ipv4_netmask.to_s.split("/")[0]
             iface_template = iface_template + "#IPv4\n"
-            iface_template = iface_template + "ifconfig_#{iface_name}=\"inet #{iface_ipv4} netmask #{iface_ipv4_split_netmask}\"\n"
+            iface_template = iface_template + "ifconfig_#{iface_name}=\"inet #{iface_ipv4} netmask #{iface_ipv4_split_netmask} -lro -rxcsum -rxcsum6 -txcsum -txcsum6 -tso -tso6\"\n"
         end
         #process v4 alias and HA
         if iface_aliases && iface_aliases["ipv4"]?
